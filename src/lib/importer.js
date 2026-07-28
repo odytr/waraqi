@@ -1,85 +1,95 @@
-import { copyFile, readFile } from '@tauri-apps/plugin-fs';
-import { convertFileSrc } from '@tauri-apps/api/core';
-import { basename, join } from '@tauri-apps/api/path';
-import { libraryDir } from './paths.js';
+import { readFile, writeFile } from '@tauri-apps/plugin-fs';
+import { basename } from '@tauri-apps/api/path';
+import { libraryPathFor } from './paths.js';
 import { getDb } from './db.js';
-import { sha256OfFile } from './hash.js';
-import { clean } from './cv.js';
-import { recognize } from './ocr.js';
+import { sha256 } from './hash.js';
+import { recognize, terminate } from './ocr.js';
 import { normalize } from './arabic.js';
 import { suggestType } from './types.js';
+import { t } from './i18n.js';
 
-const IMAGE_RE = /\.(jpe?g|png|webp|bmp|tiff?)$/i;
+let cancelled = false;
 
-export async function importOne(sourcePath, onProgress) {
-  if (!IMAGE_RE.test(sourcePath)) return { status: 'skipped', reason: 'not an image' };
+// Killing the worker is the only way to stop a recognition that is already
+// running; the flag alone would only take effect between files.
+export async function cancel() {
+  cancelled = true;
+  await terminate();
+}
+
+async function copyIntoLibrary(sourcePath) {
+  const bytes = await readFile(sourcePath);
+  const hash = await sha256(bytes);
 
   const db = await getDb();
-  const hash = await sha256OfFile(sourcePath);
+  const dupe = await db.select(
+    `SELECT id FROM documents WHERE sha256 = $1`, [hash]);
+  if (dupe.length) return { duplicate: true, id: dupe[0].id };
 
-  const dupe = await db.select('SELECT id FROM documents WHERE hash = $1', [hash]);
-  if (dupe.length) return { status: 'duplicate', id: dupe[0].id };
+  const name = await basename(sourcePath);
+  const dest = await libraryPathFor(`${Date.now()}-${name}`);
+  await writeFile(dest, bytes);
+  return { duplicate: false, path: dest, name, hash, bytes };
+}
 
-  // copy into our library (stable path, inside asset scope)
-  const name = await uniqueName(await basename(sourcePath));
-  const dest = await join(await libraryDir(), name);
-  await copyFile(sourcePath, dest);
+// Decode the bytes we already have rather than fetching the file back through
+// convertFileSrc. An <img> pointed at asset.localhost is cross-origin, which
+// taints the canvas, and Tesseract has to read the pixels back out.
+async function toCanvas(bytes) {
+  const bitmap = await createImageBitmap(new Blob([bytes]));
+  const c = document.createElement('canvas');
+  c.width = bitmap.width;
+  c.height = bitmap.height;
+  c.getContext('2d').drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return c;
+}
 
-  // clean -> OCR
-  const img = await loadImage(dest);
-  const cleaned = await clean(img);
-  const { text, confidence, words } = await recognize(cleaned, onProgress);
+export async function importOne(sourcePath, { langs, onStatus } = {}) {
+  const copied = await copyIntoLibrary(sourcePath);
+  if (copied.duplicate) return { skipped: 'duplicate', id: copied.id };
 
+  onStatus?.({ status: t('reading'), progress: 0 });
+  const canvas = await toCanvas(copied.bytes);
+
+  const text = await recognize(canvas, langs, onStatus);
   const norm = normalize(text);
+  const guess = suggestType(norm);
+
+  const db = await getDb();
   await db.execute(
-    `INSERT INTO documents (filename, path, hash, ocr_text, ocr_norm, doc_type)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [name, dest, hash, text, norm, suggestType(norm)]
+    `INSERT INTO documents
+       (filename, path, sha256, ocr_text, ocr_norm, doc_type, imported_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [copied.name, copied.path, copied.hash, text, norm,
+     guess?.type ?? '', Date.now()]
   );
 
-  const row = await db.select('SELECT last_insert_rowid() AS id');
-  return { status: 'imported', id: row[0].id, confidence, words };
+  const row = await db.select(
+    `SELECT id FROM documents WHERE sha256 = $1`, [copied.hash]);
+  return { id: row[0].id, type: guess?.type ?? '', chars: text.length };
 }
 
-function loadImage(path) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = convertFileSrc(path);      // see Part 2.3
-  });
-}
-
-async function uniqueName(name) {
-  const db = await getDb();
-  const taken = await db.select('SELECT 1 FROM documents WHERE filename = $1', [name]);
-  if (!taken.length) return name;
-  const dot = name.lastIndexOf('.');
-  return `${name.slice(0, dot)}-${Date.now()}${name.slice(dot)}`;
-}
-
-/* ---------------- queue ---------------- */
-
-export function createImportQueue({ onItem, onDone }) {
-  let cancelled = false;
-  return {
-    cancel() { cancelled = true; },
-    async run(paths) {
-      const results = { imported: 0, duplicate: 0, skipped: 0, failed: 0 };
-      for (let i = 0; i < paths.length; i++) {
-        if (cancelled) break;
-        try {
-          const r = await importOne(paths[i]);
-          results[r.status] = (results[r.status] ?? 0) + 1;
-        } catch (e) {
-          console.error('import failed', paths[i], e);
-          results.failed++;
-        }
-        onItem?.({ index: i + 1, total: paths.length, results });
-        await new Promise(r => setTimeout(r, 0));   // let the UI repaint
-      }
-      onDone?.(results);
-      return results;
-    },
-  };
+export async function importMany(paths, { langs, onFile } = {}) {
+  cancelled = false;
+  const results = [];
+  for (let i = 0; i < paths.length; i++) {
+    if (cancelled) break;
+    const p = paths[i];
+    onFile?.({ index: i, total: paths.length, path: p, status: t('starting'), progress: 0 });
+    try {
+      const r = await importOne(p, {
+        langs,
+        onStatus: (m) => onFile?.({
+          index: i, total: paths.length, path: p,
+          status: m.status, progress: m.progress,
+        }),
+      });
+      results.push({ path: p, ...r });
+    } catch (err) {
+      if (cancelled) break;
+      results.push({ path: p, error: String(err) });
+    }
+  }
+  return results;
 }

@@ -1,37 +1,47 @@
 import { createWorker } from 'tesseract.js';
 
-let workerPromise;
+// All four paths point at files in public/. Nothing here may reach a CDN -
+// that is the whole promise of the app.
+let worker;
+let workerLangs;
 
-export function getWorker(onProgress) {
-  if (!workerPromise) {
-    workerPromise = createWorker(['ara', 'eng'], 1, {
-      workerPath: '/tesseract/worker.min.js',
-      corePath:   '/tesseract/',
-      langPath:   '/tessdata/',    // local, bundled — no network
-      cacheMethod: 'none',
-      logger: m => onProgress?.(m),   // { status: 'recognizing text', progress: 0.42 }
-    });
-  }
-  return workerPromise;
+export async function getWorker(langs = ['ara', 'eng'], onStatus) {
+  const key = langs.join('+');
+  if (worker && workerLangs === key) return worker;
+  if (worker) await terminate();
+
+  worker = await createWorker(langs, 1, {
+    workerPath: '/tesseract/worker.min.js',
+    // Pinned, not a directory. Left to auto-detect, tesseract.js picks the
+    // relaxedsimd build on machines that support it, and that build aborts
+    // with "missing function: _ZN9tesseract13DotProductSSEEPKfS1_i".
+    corePath: '/tesseract/tesseract-core-simd-lstm.wasm.js',
+    langPath: '/tessdata',
+    gzip: true,
+    workerBlobURL: false,
+    // The models are bundled locally, so caching them in IndexedDB buys
+    // nothing and means swapping a .traineddata file has no effect until
+    // you clear site data.
+    cacheMethod: 'none',
+    logger: (m) => {
+      console.log('[ocr]', m.status, m.progress);
+      onStatus?.(m);
+    },
+    errorHandler: (e) => console.error('[ocr] worker error', e),
+  });
+  workerLangs = key;
+  return worker;
 }
 
-export async function recognize(canvasOrImg, onProgress) {
-  const worker = await getWorker(onProgress);
-  const { data } = await worker.recognize(canvasOrImg, {}, { blocks: true });
-  return { text: data.text, confidence: data.confidence, words: flattenWords(data) };
+export async function recognize(canvas, langs, onStatus) {
+  const w = await getWorker(langs, onStatus);
+  const { data } = await w.recognize(canvas);
+  return data.text ?? '';
 }
 
-/** Tesseract.js changed where word boxes live between versions. Handle both. */
-function flattenWords(data) {
-  if (Array.isArray(data.words) && data.words.length) return data.words;
-  const out = [];
-  for (const b of data.blocks ?? [])
-    for (const p of b.paragraphs ?? [])
-      for (const l of p.lines ?? [])
-        for (const w of l.words ?? []) out.push(w);
-  return out;
-}
-
-export async function shutdown() {
-  if (workerPromise) { (await workerPromise).terminate(); workerPromise = null; }
+export async function terminate() {
+  if (!worker) return;
+  await worker.terminate();
+  worker = undefined;
+  workerLangs = undefined;
 }

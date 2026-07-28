@@ -1,35 +1,51 @@
-import { mkdir, copyFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { join, basename } from '@tauri-apps/api/path';
-import { getDb } from '../db.js';
+import { readFile, writeFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { join } from '@tauri-apps/api/path';
+import { allDocs } from '../db.js';
 import { tagsFor } from '../tags.js';
 
-export async function exportArchive(destDir, onProgress) {
-  const db = await getDb();
-  const docs = await db.select('SELECT * FROM documents ORDER BY id');
+// The point of this is that the user can walk away. Everything they own comes
+// out as plain files plus a CSV that opens in any spreadsheet - no Waraqi
+// needed to read it afterwards.
+function csvCell(v) {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
-  await mkdir(destDir, { recursive: true });
+export async function exportArchive(destDir, onProgress) {
+  const filesDir = await join(destDir, 'files');
+  if (!(await exists(filesDir))) await mkdir(filesDir, { recursive: true });
+
+  const docs = await allDocs();
+  const rows = [['id', 'filename', 'type', 'imported_at', 'tags', 'text']];
 
   for (let i = 0; i < docs.length; i++) {
     const d = docs[i];
-    const tags = (await tagsFor(d.id)).map(t => t.name);
-    const stem = d.filename.replace(/\.[^.]+$/, '');
-    const folder = await join(destDir, stem);
-    await mkdir(folder, { recursive: true });
+    onProgress?.({ index: i, total: docs.length, filename: d.filename });
 
-    await copyFile(d.path, await join(folder, d.filename));   // the original, untouched
-    await writeTextFile(await join(folder, 'metadata.json'),
-      JSON.stringify({
-        filename: d.filename, type: d.doc_type, tags,
-        imported_at: d.imported_at, ocr_text: d.ocr_text,
-      }, null, 2));
-    await writeTextFile(await join(folder, 'text.txt'), d.ocr_text ?? '');
+    await writeFile(await join(filesDir, d.filename), await readFile(d.path));
 
-    onProgress?.({ index: i + 1, total: docs.length });
+    const tags = (await tagsFor(d.id)).map((t) => t.name).join(' ');
+    rows.push([d.id, d.filename, d.doc_type,
+               new Date(d.imported_at).toISOString(), tags, d.ocr_text]);
   }
 
-  await writeTextFile(await join(destDir, 'README.txt'),
-    'Exported from Waraqi.\n\nEach folder contains the original image, its extracted text,\n' +
-    'and metadata.json with tags and dates. No special software is required to read any of it.\n');
+  const csv = rows.map((r) => r.map(csvCell).join(',')).join('\n');
+  await writeFile(await join(destDir, 'index.csv'),
+                  new TextEncoder().encode('﻿' + csv));
 
-  return docs.length;
+  const readme = [
+    'Waraqi archive export',
+    '',
+    `${docs.length} documents.`,
+    '',
+    'files/      the original images, unchanged',
+    'index.csv   filename, type, tags and the extracted text of each one',
+    '',
+    'Nothing here needs Waraqi to open. The CSV is UTF-8 with a BOM so',
+    'Excel shows Arabic correctly.',
+  ].join('\n');
+  await writeFile(await join(destDir, 'README.txt'),
+                  new TextEncoder().encode(readme));
+
+  return { count: docs.length, destDir };
 }

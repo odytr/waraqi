@@ -1,39 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Waraqi — ورقي</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>ورقي — Waraqi</title>
     <script type="module" src="/src/main.js" defer></script>
   </head>
-
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+    <header>
+      <h1>ورقي</h1>
+      <input id="search" type="search" data-i18n-ph="searchPlaceholder" />
+      <select id="lang">
+        <option value="ara+eng" data-i18n="langBoth"></option>
+        <option value="ara" data-i18n="langAra"></option>
+        <option value="eng" data-i18n="langEng"></option>
+      </select>
+      <button id="import" data-i18n="import"></button>
+      <button id="export" class="ghost" data-i18n="exportArchive"></button>
+      <button id="ui-lang" class="ghost">EN</button>
+      <button id="theme" class="ghost" title="Dark mode">☾</button>
+    </header>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+    <div id="progress" hidden>
+      <span id="progress-label"></span>
+      <div class="bar"><div id="progress-fill"></div></div>
+      <button id="cancel" class="ghost" data-i18n="cancel"></button>
+    </div>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+    <main id="grid"></main>
+    <p id="empty" class="empty" data-i18n="empty"></p>
+
+    <div id="viewer" hidden></div>
   </body>
 </html>

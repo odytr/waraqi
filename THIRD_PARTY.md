@@ -1,26 +1,33 @@
-# Third-Party Notices
+# Third Party Components
 
-This project bundles third-party assets for offline OCR, PDF rendering, and font support.
+Waraqi runs entirely offline. Every model, binary and font it needs is committed
+under `public/` and ships inside the application bundle. Nothing is fetched at
+runtime. The components below are redistributed under the licences listed.
 
-## Tesseract.js assets
+| Component | Version | Bundled as | Licence | Upstream |
+|---|---|---|---|---|
+| Tesseract OCR trained data (Arabic, English) | 4.0.0 | `public/tessdata/{ara,eng}.traineddata.gz` | Apache-2.0 | https://github.com/tesseract-ocr/tessdata |
+| tesseract.js | 7.0.0 | `public/tesseract/worker.min.js` | Apache-2.0 | https://github.com/naptha/tesseract.js |
+| tesseract.js-core (WASM) | 7.0.0 | `public/tesseract/tesseract-core-*-lstm.wasm.js` | Apache-2.0 | https://github.com/naptha/tesseract.js-core |
+| Amiri | 1.x | `public/fonts/Amiri-Regular.ttf` | SIL OFL 1.1 | https://github.com/aliftype/amiri |
+| pdf-lib | ^1.17 | npm dependency | MIT | https://github.com/Hopding/pdf-lib |
+| @pdf-lib/fontkit | ^1.1 | npm dependency | MIT | https://github.com/Hopding/fontkit |
+| Tauri | 2.x | Rust and npm dependencies | MIT / Apache-2.0 | https://github.com/tauri-apps/tauri |
+| Vite | ^6 | build tooling, not shipped | MIT | https://github.com/vitejs/vite |
 
-- Files: `Public/tesseract/worker.min.js`, `Public/tesseract/tesseract-core.wasm.js`, `Public/tesseract/tesseract-core-simd.wasm.js`
-- Related language data: `https://tessdata.projectnaptha.com/4.0.0_fast/eng.traineddata.gz`, `https://tessdata.projectnaptha.com/4.0.0_best/ara.traineddata.gz`
-- Source: Tesseract.js from node modules folder, and Tesseract training data
-- License: Apache License 2.0
+## Licence notes
 
-## OpenCV.js
+**Apache-2.0** (Tesseract, tesseract.js) requires that the copyright and licence
+notices are retained, and that modified files are marked as modified. Waraqi
+ships these artifacts unmodified. Full text: https://www.apache.org/licenses/LICENSE-2.0
 
-- File: `https://docs.opencv.org/4.13.0/opencv.js`
-- Source: OpenCV official JavaScript build
-- License: Apache License 2.0
+**SIL Open Font License 1.1** (Amiri) permits bundling and redistribution with
+software. The font ships unmodified and is not sold on its own. The Reserved
+Font Name "Amiri" is not used for any modified version, because there is no
+modified version in this project. Full text: https://openfontlicense.org/
 
-## Amiri font
+**MIT** (pdf-lib, fontkit, Vite) requires retaining the copyright notice, which
+is preserved in the distributions.
 
-- File: `https://fonts.google.com/specimen/Amiri`
-- Source: Amiri font project
-- License: SIL Open Font License 1.1
-
-## Notes
-
-The bundled assets above are copied into the application for offline use. Their upstream licenses remain in force, and the project should preserve those terms when redistributing the app.
+OpenCV.js was used during development and removed before release. It is no
+longer bundled or loaded.
