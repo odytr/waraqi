@@ -13,15 +13,15 @@ function setProgress(state) {
   document.querySelector('#progress-fill').style.width = `${done * 100}%`;
 }
 
-function selectedLangs() {
-  return document.querySelector('#lang').value.split('+');
-}
+// Both models, always. Tesseract handles mixed pages, and asking the user to
+// classify a document before importing it is work the app should be doing.
+const LANGS = ['ara', 'eng'];
 
 async function run(paths, onDone) {
   if (!paths?.length) return;
 
   const results = await importMany(paths, {
-    langs: selectedLangs(),
+    langs: LANGS,
     onFile: setProgress,
   });
   setProgress(null);

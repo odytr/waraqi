@@ -29,5 +29,9 @@ modified version in this project. Full text: https://openfontlicense.org/
 **MIT** (pdf-lib, fontkit, Vite) requires retaining the copyright notice, which
 is preserved in the distributions.
 
+The Waraqi logo is the Arabic letter waw set in Amiri, used as an outline. The
+OFL permits this. The mark is not a modified version of the font and does not
+use the Reserved Font Name.
+
 OpenCV.js was used during development and removed before release. It is no
 longer bundled or loaded.

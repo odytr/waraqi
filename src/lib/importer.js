@@ -5,7 +5,8 @@ import { getDb } from './db.js';
 import { sha256 } from './hash.js';
 import { recognize, terminate } from './ocr.js';
 import { normalize } from './arabic.js';
-import { suggestType } from './types.js';
+import { suggestType, suggestTags } from './types.js';
+import { addTag } from './tags.js';
 import { t } from './i18n.js';
 
 let cancelled = false;
@@ -67,7 +68,11 @@ export async function importOne(sourcePath, { langs, onStatus } = {}) {
 
   const row = await db.select(
     `SELECT id FROM documents WHERE sha256 = $1`, [copied.hash]);
-  return { id: row[0].id, type: guess?.type ?? '', chars: text.length };
+  const id = row[0].id;
+
+  for (const tag of suggestTags(norm)) await addTag(id, tag);
+
+  return { id, type: guess?.type ?? '', chars: text.length };
 }
 
 export async function importMany(paths, { langs, onFile } = {}) {

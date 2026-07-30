@@ -1,4 +1,5 @@
 import Database from '@tauri-apps/plugin-sql';
+import { appDataDir, join } from '@tauri-apps/api/path';
 
 let db;
 
@@ -47,9 +48,31 @@ const SCHEMA = [
    END`,
 ];
 
+// CREATE TABLE IF NOT EXISTS does nothing to a table that already exists with
+// the wrong shape, so an old database fails later with "no such column" and no
+// hint about why. Check up front and say what to delete.
+const EXPECTED = ['id', 'filename', 'path', 'sha256', 'ocr_text', 'ocr_norm',
+                  'doc_type', 'imported_at'];
+
+async function assertSchema(d) {
+  const cols = await d.select(`PRAGMA table_info(documents)`);
+  if (!cols.length) return;                     // fresh database, nothing to check
+
+  const have = cols.map((c) => c.name);
+  const missing = EXPECTED.filter((c) => !have.includes(c));
+  if (!missing.length) return;
+
+  const path = await join(await appDataDir(), 'waraqi.db');
+  throw new Error(
+    `The database is from an older version of Waraqi ` +
+    `(missing: ${missing.join(', ')}). Close the app and delete:\n${path}`
+  );
+}
+
 export async function getDb() {
   if (db) return db;
   db = await Database.load('sqlite:waraqi.db');
+  await assertSchema(db);
   // one statement per execute() - the plugin will not take a batch
   for (const sql of SCHEMA) await db.execute(sql);
   return db;
