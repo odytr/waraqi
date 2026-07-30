@@ -29,6 +29,10 @@ export async function getWorker(langs = ['ara', 'eng'], onStatus) {
     },
     errorHandler: (e) => console.error('[ocr] worker error', e),
   });
+  // We upscale to roughly 300 DPI in prep.js. Telling Tesseract that stops it
+  // estimating the resolution itself, which it often gets wrong on photos.
+  await worker.setParameters({ user_defined_dpi: '300' });
+
   workerLangs = key;
   return worker;
 }

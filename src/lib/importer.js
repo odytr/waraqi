@@ -5,6 +5,7 @@ import { getDb } from './db.js';
 import { sha256 } from './hash.js';
 import { recognize, terminate } from './ocr.js';
 import { normalize } from './arabic.js';
+import { prepare } from './prep.js';
 import { suggestType, suggestTags } from './types.js';
 import { addTag } from './tags.js';
 import { t } from './i18n.js';
@@ -51,7 +52,7 @@ export async function importOne(sourcePath, { langs, onStatus } = {}) {
   if (copied.duplicate) return { skipped: 'duplicate', id: copied.id };
 
   onStatus?.({ status: t('reading'), progress: 0 });
-  const canvas = await toCanvas(copied.bytes);
+  const canvas = prepare(await toCanvas(copied.bytes));
 
   const text = await recognize(canvas, langs, onStatus);
   const norm = normalize(text);
