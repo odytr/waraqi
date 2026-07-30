@@ -58,6 +58,8 @@ Search uses SQLite FTS5. Text is normalized before it is indexed and queries are
 normalized the same way, which is the part that makes Arabic search actually
 work. Tesseract runs in a worker with its models loaded from disk.
 
+`log.md` has the build log, including the things that went wrong and why the
+fixes look the way they do.
 
 ## Licence
 
