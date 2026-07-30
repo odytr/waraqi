@@ -7,6 +7,7 @@ const STRINGS = {
     langEng: 'إنجليزي فقط',
     import: 'استيراد',
     exportArchive: 'تصدير الأرشيف',
+    openFolder: 'فتح المجلد',
     cancel: 'إلغاء',
     empty: 'لا توجد مستندات بعد. اسحب صورة إلى النافذة أو اضغط استيراد.',
     untyped: 'بدون تصنيف',
@@ -24,6 +25,9 @@ const STRINGS = {
     failed: (n, t) => `فشل ${n} من ${t}`,
     reading: 'قراءة الصورة',
     starting: 'بدء',
+    tags: 'الوسوم',
+    allDocs: 'كل المستندات',
+    collapse: 'طي',
   },
   en: {
     title: 'Waraqi',
@@ -33,6 +37,7 @@ const STRINGS = {
     langEng: 'English only',
     import: 'Import',
     exportArchive: 'Export archive',
+    openFolder: 'Open folder',
     cancel: 'Cancel',
     empty: 'No documents yet. Drop an image on the window or press Import.',
     untyped: 'Untyped',
@@ -50,6 +55,9 @@ const STRINGS = {
     failed: (n, t) => `${n} of ${t} failed`,
     reading: 'Reading image',
     starting: 'Starting',
+    tags: 'Tags',
+    allDocs: 'All documents',
+    collapse: 'Collapse',
   },
 };
 

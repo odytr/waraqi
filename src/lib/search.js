@@ -1,5 +1,6 @@
 import { getDb, recent } from './db.js';
 import { normalize } from './arabic.js';
+import { matchTags } from './tags.js';
 
 // User text goes straight into a MATCH expression, where bare punctuation is a
 // syntax error. Quoting each word makes them literals, and the trailing * gives
@@ -12,15 +13,14 @@ function toMatchQuery(raw) {
     .join(' ');
 }
 
-const TAGS = `
+const BY_TAG_IDS = `
   SELECT (SELECT group_concat(t2.name, ' ') FROM doc_tags dt2
           JOIN tags t2 ON t2.id = dt2.tag_id WHERE dt2.doc_id = d.id) AS tags,
          d.id, d.filename, d.path, d.doc_type, d.imported_at,
          substr(d.ocr_text, 1, 160) AS preview
   FROM documents d
   JOIN doc_tags dt ON dt.doc_id = d.id
-  JOIN tags t ON t.id = dt.tag_id
-  WHERE t.name LIKE $1
+  WHERE dt.tag_id IN (SELECT value FROM json_each($1))
   GROUP BY d.id
   ORDER BY d.imported_at DESC
   LIMIT 200`;
@@ -55,9 +55,15 @@ export async function search(raw) {
   const db = await getDb();
   const found = new Map();
 
-  // Tag hits go first — if you typed a tag name, that is what you meant.
+  // Tag hits go first. If you typed a tag name, that is what you meant.
+  // matchTags compares normalized, so "فاتوره" finds the tag "فاتورة".
   try {
-    for (const r of await db.select(TAGS, [`%${term}%`])) found.set(r.id, r);
+    const ids = (await matchTags(term)).map((t) => t.id);
+    if (ids.length) {
+      for (const r of await db.select(BY_TAG_IDS, [JSON.stringify(ids)])) {
+        found.set(r.id, r);
+      }
+    }
   } catch (err) {
     console.warn('[search] tag lookup failed:', err);
   }

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160">
+  <title>Waraqi wordmark</title>
+  <g transform="translate(8,20)"><rect width="120" height="120" rx="26" fill="#1f6f5c"/>
+  <path d="M26.2 20.6 H70.3 L87.2 37.5 V93.8 H26.2 Z" fill="#ffffff"/>
+  <path d="M70.3 20.6 L87.2 37.5 H70.3 Z" fill="#a9c8bf"/>
+  <path transform="translate(42.6,57.1) scale(0.07968750000000001,-0.07968750000000001)" d="M169 194Q204 291 251 290Q280 290 305 250Q318 230 325.0 208.0Q332 186 336 161Q344 111 321 22Q298 -67 233 -141Q167 -216 128 -220Q88 -224 22 -214Q-11 -209 -34.5 -202.5Q-58 -196 -73 -190Q-84 -185 -83 -178Q-81 -170 -70 -172Q8 -183 79 -166Q100 -161 130.5 -141.0Q161 -121 201 -86Q241 -51 265.0 -22.0Q289 7 296 31Q291 73 284 77Q246 18 187 48Q128 78 169 194ZM260 157Q231 204 198 161Q223 133 260 157Z" fill="#1f6f5c"/>
+  <circle cx="79.7" cy="84.4" r="20.6" fill="#1f6f5c"/>
+  <circle cx="79.7" cy="84.4" r="13.6" fill="none" stroke="#ffffff" stroke-width="6.1"/>
+  <path d="M89.5 94.2 L101.2 105.9" stroke="#ffffff" stroke-width="7.0" stroke-linecap="round"/></g>
+  <text x="152" y="80" font-family="Amiri, Segoe UI, Tahoma, serif" font-size="54" fill="#1c1a17">ورقي</text>
+  <text x="152" y="118" font-family="Segoe UI, system-ui, sans-serif" font-size="26" letter-spacing="3" fill="#6f6a62">WARAQI</text>
+</svg>

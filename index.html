@@ -9,14 +9,11 @@
   </head>
   <body>
     <header>
+      <img id="logo" src="/logo.svg" alt="" width="28" height="28" />
       <h1>ورقي</h1>
       <input id="search" type="search" data-i18n-ph="searchPlaceholder" />
-      <select id="lang">
-        <option value="ara+eng" data-i18n="langBoth"></option>
-        <option value="ara" data-i18n="langAra"></option>
-        <option value="eng" data-i18n="langEng"></option>
-      </select>
       <button id="import" data-i18n="import"></button>
+      <button id="open-folder" class="ghost" data-i18n="openFolder"></button>
       <button id="export" class="ghost" data-i18n="exportArchive"></button>
       <button id="ui-lang" class="ghost">EN</button>
       <button id="theme" class="ghost" title="Dark mode">☾</button>
@@ -28,8 +25,13 @@
       <button id="cancel" class="ghost" data-i18n="cancel"></button>
     </div>
 
-    <main id="grid"></main>
-    <p id="empty" class="empty" data-i18n="empty"></p>
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <div class="content">
+        <main id="grid"></main>
+        <p id="empty" class="empty" data-i18n="empty"></p>
+      </div>
+    </div>
 
     <div id="viewer" hidden></div>
   </body>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Waraqi</title>
+  <rect width="512" height="512" rx="112" fill="#1f6f5c"/>
+  <path d="M112.0 88.0 H300.0 L372.0 160.0 V400.0 H112.0 Z" fill="#ffffff"/>
+  <path d="M300.0 88.0 L372.0 160.0 H300.0 Z" fill="#a9c8bf"/>
+  <path transform="translate(181.8,243.4) scale(0.34,-0.34)" d="M169 194Q204 291 251 290Q280 290 305 250Q318 230 325.0 208.0Q332 186 336 161Q344 111 321 22Q298 -67 233 -141Q167 -216 128 -220Q88 -224 22 -214Q-11 -209 -34.5 -202.5Q-58 -196 -73 -190Q-84 -185 -83 -178Q-81 -170 -70 -172Q8 -183 79 -166Q100 -161 130.5 -141.0Q161 -121 201 -86Q241 -51 265.0 -22.0Q289 7 296 31Q291 73 284 77Q246 18 187 48Q128 78 169 194ZM260 157Q231 204 198 161Q223 133 260 157Z" fill="#1f6f5c"/>
+  <circle cx="340.0" cy="360.0" r="88.0" fill="#1f6f5c"/>
+  <circle cx="340.0" cy="360.0" r="58.0" fill="none" stroke="#ffffff" stroke-width="26.0"/>
+  <path d="M382.0 402.0 L432.0 452.0" stroke="#ffffff" stroke-width="30.0" stroke-linecap="round"/>
+</svg>
