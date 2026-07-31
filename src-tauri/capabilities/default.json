@@ -12,7 +12,6 @@
     "dialog:allow-save",
 
     "opener:default",
-    "opener:allow-open-path",
 
     "sql:default",
     "sql:allow-load",
@@ -48,6 +47,13 @@
     {
       "identifier": "fs:allow-remove",
       "allow": [{ "path": "$APPDATA/library/**" }]
+    },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        { "path": "$APPDATA/library" },
+        { "path": "$APPDATA/library/**" }
+      ]
     }
   ]
 }
