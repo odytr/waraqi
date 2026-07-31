@@ -1,67 +1,124 @@
+<div align="center">
+
+<img src="brand/logo.svg" width="96" alt="">
+
 # ورقي / Waraqi
 
-An offline document archive for Arabic paperwork.
+**An offline document archive for Arabic paperwork.**
 
-You photograph your documents, Waraqi reads the text out of them and lets you
-search that text later. Everything happens on your machine. There is no account,
-no server, and no network call at any point, including the first run.
+Photograph your documents, Waraqi reads the text out of them, and you can search
+that text later. Everything happens on your machine. No account, no server, and
+no network call at any point, including the first run.
+
+</div>
 
 ## Why
 
-The tools that do this already exist, but they assume a server you have to run,
-and none of them handle Arabic well. That combination puts them out of reach of
-the people who need them most: anyone holding a folder of contracts, IDs,
-prescriptions and invoices they cannot search.
+Tools that do this already exist. They assume a server you have to run, and none
+of them handle Arabic well. That combination puts them out of reach of the people
+who need them most: anyone holding a folder of contracts, IDs, prescriptions and
+invoices they cannot search.
 
 ## What it does
 
-- Import photos by dragging them onto the window or through a file picker
-- OCR in Arabic, English, or both
-- Full text search over the extracted text, with Arabic normalization so that
-  writing فاتوره finds فاتورة
-- Tags, and search by tag
-- A rule based guess at what kind of document it is
-- Export a single document as a searchable PDF
+- Import by dragging photos onto the window or through a file picker
+- OCR in Arabic and English, both on every page, no setting to get wrong
+- Full text search with Arabic normalization, so writing فاتوره finds فاتورة
+- Tags, searchable, with a sidebar showing counts
+- Tags applied automatically from what is actually written on the page
+- A rule based guess at the document type, no model involved
+- Export one document as a searchable PDF
 - Export the whole archive as plain files plus a CSV that opens anywhere
+
+## How a document moves through it
+
+```mermaid
+flowchart TD
+    A[Drop or pick an image] --> B[SHA-256]
+    B -->|already in the library| Z[Skipped as a duplicate]
+    B -->|new| C[Copy into AppData/library]
+    C --> D[Upscale, greyscale, contrast, deskew]
+    D --> E[Tesseract, Arabic and English]
+    E --> F[Drop low confidence words]
+    F --> G[Normalize Arabic]
+    G --> H[(SQLite + FTS5)]
+    G --> I[Keyword rules] --> J[Type and tags]
+    J --> H
+```
+
+The copy in step three is not tidiness. The webview is only allowed to display
+files inside the app's own data folder, so importing has to move the file there
+before it can ever be shown.
+
+## Arabic is the point
+
+Arabic is written several ways for the same word. Diacritics are optional, alef
+carries hamza or not, taa marbuta and haa get swapped, numerals come in two sets.
+A person searching for فاتورة will type it however they type it.
+
+So every piece of text is normalized before it is indexed, and every query is
+normalized the same way. SQLite's own tokenizer does none of this for Arabic,
+which is why searching an Arabic archive usually fails.
+
+```js
+normalize('إيجار')  === normalize('ايجار')   // hamza
+normalize('مُسْتَشْفَى') === normalize('مستشفي')   // diacritics
+normalize('١٥٠٠')   === '1500'              // numerals
+```
+
+Those three cases are covered by tests. Run `npm test`.
+
+## Offline is the point too
+
+Everything OCR needs is committed in this repository: the Arabic and English
+language models, the Tesseract WebAssembly core, and the Amiri font used for
+Arabic in exported PDFs. A fresh clone builds and runs with nothing downloaded,
+and the application makes no network requests at all.
+
+Your documents live in one folder inside the app's data directory, alongside a
+single SQLite database. Delete that folder and the app is empty again. The
+archive export exists so you can walk away with everything, readable without
+Waraqi.
 
 ## Running it
 
-Needs Node 20+ and Rust.
+Needs Node 20 or later and Rust.
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-To build an installer:
+Build an installer:
 
 ```bash
 npm run tauri build
 ```
 
-Everything OCR needs is committed under `public/`, so a fresh clone builds and
-runs without downloading anything.
+Run the tests:
+
+```bash
+npm test
+```
 
 ## How it is put together
 
 Tauri 2 for the shell, vanilla JavaScript for the frontend, SQLite for storage.
+No framework.
 
 ```
 src/lib/    arabic.js normalization, db.js schema and FTS triggers,
-            ocr.js Tesseract, importer.js the pipeline, search.js,
-            tags.js, types.js, export/
-src/ui/     library grid, document viewer, import handling
-public/     tessdata, tesseract cores, Amiri font
+            prep.js image preprocessing, ocr.js Tesseract,
+            importer.js the pipeline, search.js, tags.js, types.js, export/
+src/ui/     library grid, document viewer, import handling, tag sidebar
+public/     language models, Tesseract core, Amiri font
 ```
 
-Search uses SQLite FTS5. Text is normalized before it is indexed and queries are
-normalized the same way, which is the part that makes Arabic search actually
-work. Tesseract runs in a worker with its models loaded from disk.
-
-`log.md` has the build log, including the things that went wrong and why the
-fixes look the way they do.
+Search runs on SQLite FTS5 with an external content table, so the index is kept
+in sync by triggers rather than storing the text twice. Tesseract runs in a
+worker with its models read from disk.
 
 ## Licence
 
-MIT, see `LICENSE`. Third party components and their licences are listed in
-`THIRD_PARTY.md`.
+MIT, see [LICENSE](LICENSE). Third party components and their licences are listed
+in [THIRD_PARTY.md](THIRD_PARTY.md).
