@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { normalize } from '../src/lib/arabic.js';
+import { normalize } from '../lib/arabic.js';
 
 test('alef forms unify', () => {
   assert.equal(normalize('إيجار'), normalize('ايجار'));
