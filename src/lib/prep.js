@@ -60,6 +60,94 @@ function stretch(canvas) {
   return canvas;
 }
 
+// Skew estimation by projection profile. Shear the page by a candidate angle,
+// sum dark pixels per row, and score how uneven those sums are. Text lines that
+// are level give sharp peaks and troughs; a tilted page smears them flat. The
+// angle with the highest variance is the skew.
+//
+// Done on a ~500px wide copy, so all of this is a few million operations rather
+// than a few hundred million.
+const MAX_SKEW = 8;         // degrees either way, beyond this it is not a scan
+const STEP = 0.25;
+const APPLY_ABOVE = 0.3;    // rotating by less than this is not worth the resample
+
+// Returns the angle to rotate BY, not the tilt of the page. The winning shear
+// is the one that undoes the tilt, so it already has the opposite sign.
+function correctionAngle(canvas) {
+  const scale = Math.min(1, 500 / canvas.width);
+  const w = Math.max(1, Math.round(canvas.width * scale));
+  const h = Math.max(1, Math.round(canvas.height * scale));
+
+  const small = document.createElement('canvas');
+  small.width = w;
+  small.height = h;
+  small.getContext('2d').drawImage(canvas, 0, 0, w, h);
+
+  const px = small.getContext('2d', { willReadFrequently: true })
+                  .getImageData(0, 0, w, h).data;
+
+  // 1 where there is ink. The image is already contrast stretched by here.
+  const ink = new Uint8Array(w * h);
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+    ink[j] = px[i] < 128 ? 1 : 0;
+  }
+
+  let bestAngle = 0;
+  let bestScore = -1;
+
+  for (let deg = -MAX_SKEW; deg <= MAX_SKEW; deg += STEP) {
+    const slope = Math.tan((deg * Math.PI) / 180);
+    const rows = new Float64Array(h);
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      for (let x = 0; x < w; x++) {
+        if (!ink[row + x]) continue;
+        const ry = y + slope * (x - w / 2);
+        if (ry >= 0 && ry < h) rows[ry | 0]++;
+      }
+    }
+    let mean = 0;
+    for (let y = 0; y < h; y++) mean += rows[y];
+    mean /= h;
+    let variance = 0;
+    for (let y = 0; y < h; y++) {
+      const d = rows[y] - mean;
+      variance += d * d;
+    }
+    if (variance > bestScore) {
+      bestScore = variance;
+      bestAngle = deg;
+    }
+  }
+  return bestAngle;
+}
+
+function rotate(canvas, deg) {
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const w = Math.round(canvas.width * cos + canvas.height * sin);
+  const h = Math.round(canvas.width * sin + canvas.height * cos);
+
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#fff';           // corners exposed by the rotation
+  ctx.fillRect(0, 0, w, h);
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(rad);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  return out;
+}
+
+function deskew(canvas) {
+  const deg = correctionAngle(canvas);
+  console.log('[prep] rotating by', deg.toFixed(2), 'deg');
+  return Math.abs(deg) < APPLY_ABOVE ? canvas : rotate(canvas, deg);
+}
+
 export function prepare(canvas) {
-  return stretch(resize(canvas));
+  return deskew(stretch(resize(canvas)));
 }
