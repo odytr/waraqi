@@ -1,6 +1,7 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
-import { getDoc, deleteDoc } from '../lib/db.js';
+import { getDoc } from '../lib/db.js';
+import { deleteDocument } from '../lib/importer.js';
 import { tagsFor, addTag, removeTag } from '../lib/tags.js';
 import { exportSearchablePdf } from '../lib/export/pdf.js';
 import { t } from '../lib/i18n.js';
@@ -84,7 +85,7 @@ export async function openViewer(id, onChange) {
 
   el.querySelector('#v-del').onclick = async () => {
     if (!confirm(t('confirmDelete'))) return;
-    await deleteDoc(id);
+    await deleteDocument(id);
     closeViewer();
     onChange?.();
   };

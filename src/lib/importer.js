@@ -1,7 +1,7 @@
-import { readFile, writeFile } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, remove, exists } from '@tauri-apps/plugin-fs';
 import { basename } from '@tauri-apps/api/path';
 import { libraryPathFor } from './paths.js';
-import { getDb } from './db.js';
+import { getDb, getDoc, deleteDoc } from './db.js';
 import { sha256 } from './hash.js';
 import { recognize, terminate } from './ocr.js';
 import { normalize } from './arabic.js';
@@ -98,4 +98,22 @@ export async function importMany(paths, { langs, onFile } = {}) {
     }
   }
   return results;
+}
+
+// The importer copies the file in, so it removes it too. Deleting only the
+// database rows left the image sitting in AppData, which is not what "delete"
+// means in a document archive.
+export async function deleteDocument(id) {
+  const doc = await getDoc(id);
+  if (!doc) return;
+
+  try {
+    if (await exists(doc.path)) await remove(doc.path);
+  } catch (err) {
+    // Rows still go, otherwise a locked file would make the document
+    // undeletable from the UI forever.
+    console.error('[delete] could not remove file', doc.path, err);
+  }
+
+  await deleteDoc(id);
 }

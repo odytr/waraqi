@@ -28,6 +28,7 @@
     "fs:allow-write-file",
     "fs:allow-copy-file",
     "fs:allow-read-dir",
+    "fs:allow-remove",
     {
       "identifier": "fs:allow-read-file",
       "allow": [{ "path": "**" }]
@@ -43,6 +44,10 @@
     {
       "identifier": "fs:allow-exists",
       "allow": [{ "path": "**" }]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [{ "path": "$APPDATA/library/**" }]
     }
   ]
 }
