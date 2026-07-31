@@ -4,7 +4,7 @@
 
 # ورقي / Waraqi
 
-**An offline document archive for Arabic paperwork.**
+**An offline document archive that reads Arabic and English.**
 
 Photograph your documents, Waraqi reads the text out of them, and you can search
 that text later. Everything happens on your machine. No account, no server, and
@@ -14,16 +14,20 @@ no network call at any point, including the first run.
 
 ## Why
 
-Tools that do this already exist. They assume a server you have to run, and none
-of them handle Arabic well. That combination puts them out of reach of the people
-who need them most: anyone holding a folder of contracts, IDs, prescriptions and
-invoices they cannot search.
+Tools that do this already exist. They assume a server you have to run, and they
+treat Arabic as an afterthought when they support it at all. That combination
+puts them out of reach of the people who need them most: anyone holding a folder
+of contracts, IDs, prescriptions and invoices they cannot search.
+
+Most paperwork here is not in one language. A single page carries an Arabic
+header, an English form field and a number in either script. So Waraqi reads both
+on every page, and searching works the same whichever you type.
 
 ## What it does
 
 - Import by dragging photos onto the window or through a file picker
-- OCR in Arabic and English, both on every page, no setting to get wrong
-- Full text search with Arabic normalization, so writing فاتوره finds فاتورة
+- OCR in Arabic and English together on every page, including mixed documents
+- Full text search in either language, with Arabic normalization so فاتوره finds فاتورة
 - Tags, searchable, with a sidebar showing counts
 - Tags applied automatically from what is actually written on the page
 - A rule based guess at the document type, no model involved
@@ -50,15 +54,22 @@ The copy in step three is not tidiness. The webview is only allowed to display
 files inside the app's own data folder, so importing has to move the file there
 before it can ever be shown.
 
-## Arabic is the point
+## Both languages, one page
 
-Arabic is written several ways for the same word. Diacritics are optional, alef
-carries hamza or not, taa marbuta and haa get swapped, numerals come in two sets.
-A person searching for فاتورة will type it however they type it.
+Every page goes through both the Arabic and the English model, so a document with
+an Arabic header and English form fields comes out whole. There is no language
+setting, because asking someone to classify a document before importing it is
+work the app should be doing.
 
-So every piece of text is normalized before it is indexed, and every query is
-normalized the same way. SQLite's own tokenizer does none of this for Arabic,
-which is why searching an Arabic archive usually fails.
+English mostly takes care of itself. Arabic does not, and that is where the work
+went.
+
+The same word is written several ways. Diacritics are optional, alef carries
+hamza or not, taa marbuta and haa get swapped, numerals come in two sets. A person
+searching for فاتورة will type it however they type it. So every piece of text is
+normalized before it is indexed, and every query is normalized the same way.
+SQLite's own tokenizer does none of this for Arabic, which is why searching an
+Arabic archive usually fails.
 
 ```js
 normalize('إيجار')  === normalize('ايجار')   // hamza
@@ -67,6 +78,11 @@ normalize('١٥٠٠')   === '1500'              // numerals
 ```
 
 Those three cases are covered by tests. Run `npm test`.
+
+Tags and document types follow the same rule and are matched in both languages.
+A page reading "Passport" is tagged Passport, one reading جواز سفر is tagged
+جواز سفر, and the app's own interface flips between Arabic and English with the
+layout mirroring correctly.
 
 ## Offline is the point too
 
