@@ -57,16 +57,13 @@ before it can ever be shown.
 ## Both languages, one page
 
 Every page goes through both the Arabic and the English model, so a document with
-an Arabic header and English form fields comes out whole. There is no language
-setting, because asking someone to classify a document before importing it is
-work the app should be doing.
+an Arabic header and English form fields comes out whole.
 
 English mostly takes care of itself. Arabic does not, and that is where the work
 went.
 
 The same word is written several ways. Diacritics are optional, alef carries
-hamza or not, taa marbuta and haa get swapped, numerals come in two sets. A person
-searching for فاتورة will type it however they type it. So every piece of text is
+hamza or not, taa marbuta and haa get swapped, numerals come in two sets. So every piece of text is
 normalized before it is indexed, and every query is normalized the same way.
 SQLite's own tokenizer does none of this for Arabic, which is why searching an
 Arabic archive usually fails.
